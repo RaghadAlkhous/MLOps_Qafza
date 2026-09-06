@@ -1,0 +1,7 @@
+{
+  "model": "..\\artifacts\\notebook_06\\final_model.joblib",
+  "results_summary": "..\\artifacts\\notebook_06\\results_summary.json",
+  "tuning_results": "..\\artifacts\\notebook_06\\tuning_results.csv",
+  "validation_results": "..\\artifacts\\notebook_06\\validation_results.csv",
+  "test_results": "..\\artifacts\\notebook_06\\test_results.csv"
+}

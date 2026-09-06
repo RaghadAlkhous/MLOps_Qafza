@@ -1,0 +1,37 @@
+{
+  "prediction_point": "order_approval",
+  "target": "late",
+  "primary_metric": "average_precision",
+  "baseline_models": [
+    "DummyClassifier",
+    "LogisticRegression",
+    "RandomForestClassifier"
+  ],
+  "selected_model": "RandomForestClassifier",
+  "best_parameters": {
+    "n_estimators": 200,
+    "max_depth": null,
+    "min_samples_leaf": 5,
+    "max_features": "sqrt"
+  },
+  "validation_results": {
+    "split": "validation",
+    "accuracy": 0.8971807628524047,
+    "precision_late": 0.3527204502814259,
+    "recall_late": 0.3202725724020443,
+    "f1_late": 0.3357142857142857,
+    "roc_auc": 0.7924195668777798,
+    "average_precision": 0.30007576725734436
+  },
+  "test_results": {
+    "split": "test",
+    "accuracy": 0.8968352681039248,
+    "precision_late": 0.3516279069767442,
+    "recall_late": 0.3219761499148211,
+    "f1_late": 0.3361493997332148,
+    "roc_auc": 0.7898484433493219,
+    "average_precision": 0.2871239788105896
+  },
+  "test_used_for_model_selection": false,
+  "test_evaluated_once_at_end": true
+}
