@@ -1,0 +1,24 @@
+﻿# Paths
+paths:
+  artifacts_dir: artifacts
+  models_dir: models
+  data_dir: data
+  logs_dir: logs
+
+# Model
+model:
+  name: random_forest_late_delivery
+  version: 1.0.0
+  artifact_name: final_model.joblib
+
+# API
+api:
+  host: 0.0.0.0
+  port: 8000
+  debug: false
+
+# Logging
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: logs/predictions.log
