@@ -34,3 +34,4 @@ mlruns/
 # MLflow cache and local runs
 models/cache/
 mlruns/
+.env

@@ -5,7 +5,7 @@ from src.logger import get_logger
 logger = get_logger(__name__)
 
 # Load context and suite ONCE at module import time (Singleton)
-_gx_context = gx.get_context()
+_gx_context = gx.get_context(context_root_dir="gx")
 _gx_suite = _gx_context.get_expectation_suite("order_input_suite")
 
 def validate_order_data(df: pd.DataFrame) -> dict:

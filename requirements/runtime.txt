@@ -12,5 +12,4 @@ uvicorn==0.53.0
 
 # MLOps Tools
 mlflow==2.22.5
-dvc==3.55.2
 great-expectations==0.18.21

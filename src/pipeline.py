@@ -7,6 +7,7 @@ from mlflow import MlflowClient
 from pathlib import Path
 from typing import Dict, Any
 import sys
+import os
 
 from src.features import create_features
 from src.preprocessing import apply_frequency_encoding, apply_preprocessor
@@ -22,9 +23,10 @@ logger = get_logger(__name__)
 class InferencePipeline:
     def __init__(self):
         logger.info("Initializing InferencePipeline from MLflow Registry...")
-        # Use absolute path for mlruns to avoid CWD issues
-        mlruns_path = Path(CONFIG['paths']['logs_dir']).parent / "mlruns"
-        mlflow.set_tracking_uri(f"file:{mlruns_path}")
+        
+        # Use environment variable or construct relative path
+        tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "file:/app/mlruns")
+        mlflow.set_tracking_uri(tracking_uri)
         
         client = MlflowClient()
         model_name = "olist-late-delivery-rf"
@@ -34,7 +36,12 @@ class InferencePipeline:
             self.model_version = f"{model_name}:{mv.version}"
             run_id = mv.run_id
             
-            model_uri = f"models:/{model_name}@Production"
+            # CRITICAL: Construct model URI manually to avoid Windows absolute paths
+            # Instead of using the stored artifact location (which has C:/Users/...),
+            # we construct a relative path based on the current tracking URI
+            model_uri = f"runs:/{run_id}/model"
+            
+            logger.info(f"Loading model from URI: {model_uri}")
             self.model = mlflow.sklearn.load_model(model_uri)
             
             cache_dir = Path(CONFIG["paths"]["models_dir"]) / "cache"
