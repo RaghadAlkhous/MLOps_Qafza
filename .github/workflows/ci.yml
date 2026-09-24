@@ -43,6 +43,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements/runtime.txt -r requirements/dev.txt
 
+      - name: Prepare MLflow model registry
+        env:
+          MLFLOW_TRACKING_URI: file:./mlruns
+        run: |
+          mkdir -p mlruns
+          python scripts/register_ci_model.py || echo "Model registration skipped or failed"
+
       - name: Ruff lint
         run: ruff check .
 
