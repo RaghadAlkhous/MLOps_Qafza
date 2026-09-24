@@ -1,6 +1,5 @@
 ﻿import pandas as pd
 import time
-import json
 from typing import Dict, Any
 
 from src.features import create_features
@@ -11,6 +10,7 @@ from src.preprocessing import (
 )
 from src.config import CONFIG
 from src.logger import get_logger
+from src.validation import validate_order_data
 
 logger = get_logger(__name__)
 
@@ -23,12 +23,20 @@ class InferencePipeline:
 
     def predict(self, raw_input: pd.DataFrame) -> Dict[str, Any]:
         start_time = time.time()
-        
-        # Log input (truncate if too large)
-        input_summary = raw_input.shape[0]
-        logger.info(f"Received prediction request for {input_summary} order(s).")
+        logger.info(f"Received prediction request for {raw_input.shape[0]} order(s).")
 
         try:
+            # Step 0: Validate Input Data (Great Expectations)
+            validation_result = validate_order_data(raw_input)
+            if not validation_result["success"]:
+                error_msg = f"Data validation failed: {validation_result['details']}"
+                logger.error(error_msg)
+                return {
+                    "error": error_msg, 
+                    "status": "rejected", 
+                    "latency_ms": round((time.time() - start_time) * 1000, 2)
+                }
+
             # Step 1: Build derived features
             df_features = create_features(raw_input)
             
@@ -57,7 +65,8 @@ class InferencePipeline:
                 "label": "late" if prediction_class == 1 else "on_time",
                 "probability": float(prob_late),
                 "model_version": self.model_version,
-                "latency_ms": round(elapsed_time * 1000, 2)
+                "latency_ms": round(elapsed_time * 1000, 2),
+                "status": "success"
             }
             
             logger.info(f"Prediction successful: {result}")
@@ -66,9 +75,9 @@ class InferencePipeline:
         except KeyError as e:
             error_msg = f"Missing required column in input data: {str(e)}"
             logger.error(error_msg)
-            return {"error": error_msg, "status": "failed"}
+            return {"error": error_msg, "status": "failed", "latency_ms": round((time.time() - start_time) * 1000, 2)}
             
         except Exception as e:
             error_msg = f"Unexpected error during inference: {str(e)}"
             logger.error(error_msg, exc_info=True)
-            return {"error": error_msg, "status": "failed"}
+            return {"error": error_msg, "status": "failed", "latency_ms": round((time.time() - start_time) * 1000, 2)}
