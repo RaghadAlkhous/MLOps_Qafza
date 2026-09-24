@@ -30,3 +30,7 @@ mlruns/
 # DVC
 .dvc/cache/
 /artifacts
+
+# MLflow cache and local runs
+models/cache/
+mlruns/

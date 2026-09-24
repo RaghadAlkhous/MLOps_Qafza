@@ -1,62 +1,92 @@
 ﻿import pandas as pd
 import time
+import json
+import joblib
+import mlflow
+from mlflow import MlflowClient
+from pathlib import Path
 from typing import Dict, Any
+import sys
 
 from src.features import create_features
-from src.preprocessing import (
-    load_artifacts,
-    apply_frequency_encoding,
-    apply_preprocessor
-)
+from src.preprocessing import apply_frequency_encoding, apply_preprocessor
 from src.config import CONFIG
 from src.logger import get_logger
 from src.validation import validate_order_data
+
+# Hack for FrequencyEncoder (must be in __main__ for joblib to unpickle)
+from src.encoders import FrequencyEncoder
+sys.modules['__main__'].FrequencyEncoder = FrequencyEncoder
 
 logger = get_logger(__name__)
 
 class InferencePipeline:
     def __init__(self):
-        logger.info("Initializing InferencePipeline and loading artifacts...")
-        self.artifacts = load_artifacts()
-        self.model_version = CONFIG["model"]["version"]
-        logger.info(f"Artifacts loaded successfully. Model version: {self.model_version}")
+        logger.info("Initializing InferencePipeline from MLflow Registry...")
+        mlflow.set_tracking_uri("file:./mlruns")
+        client = MlflowClient()
+        model_name = "olist-late-delivery-rf"
+        
+        try:
+            # 1. Get the Production model version
+            mv = client.get_model_version_by_alias(model_name, "Production")
+            self.model_version = f"{model_name}:{mv.version}"
+            run_id = mv.run_id
+            
+            # 2. Load the sklearn model directly from the registry
+            model_uri = f"models:/{model_name}@Production"
+            self.model = mlflow.sklearn.load_model(model_uri)
+            
+            # 3. Download transformers to a local cache directory
+            cache_dir = Path(CONFIG["paths"]["models_dir"]) / "cache"
+            cache_dir.mkdir(parents=True, exist_ok=True)
+            
+            client.download_artifacts(run_id, "preprocessor.joblib", str(cache_dir))
+            client.download_artifacts(run_id, "city_frequency_encoder.joblib", str(cache_dir))
+            client.download_artifacts(run_id, "zip_frequency_encoder.joblib", str(cache_dir))
+            client.download_artifacts(run_id, "feature_list.json", str(cache_dir))
+            
+            # 4. Load the downloaded artifacts
+            self.artifacts = {
+                "city_encoder": joblib.load(cache_dir / "city_frequency_encoder.joblib"),
+                "zip_encoder": joblib.load(cache_dir / "zip_frequency_encoder.joblib"),
+                "preprocessor": joblib.load(cache_dir / "preprocessor.joblib"),
+                "feature_list": json.load(open(cache_dir / "feature_list.json"))
+            }
+            logger.info(f"Loaded model {self.model_version} from MLflow Registry.")
+            
+        except Exception as e:
+            logger.error(f"Failed to load model from MLflow: {e}")
+            raise
 
     def predict(self, raw_input: pd.DataFrame) -> Dict[str, Any]:
         start_time = time.time()
         logger.info(f"Received prediction request for {raw_input.shape[0]} order(s).")
 
         try:
-            # Step 0: Validate Input Data (Great Expectations)
+            # Step 0: Validate Input Data
             validation_result = validate_order_data(raw_input)
             if not validation_result["success"]:
                 error_msg = f"Data validation failed: {validation_result['details']}"
                 logger.error(error_msg)
-                return {
-                    "error": error_msg, 
-                    "status": "rejected", 
-                    "latency_ms": round((time.time() - start_time) * 1000, 2)
-                }
+                return {"error": error_msg, "status": "rejected", "latency_ms": round((time.time() - start_time) * 1000, 2)}
 
             # Step 1: Build derived features
             df_features = create_features(raw_input)
             
             # Step 2: Apply frequency encoding
             df_encoded = apply_frequency_encoding(
-                df_features,
-                self.artifacts["city_encoder"],
-                self.artifacts["zip_encoder"]
+                df_features, self.artifacts["city_encoder"], self.artifacts["zip_encoder"]
             )
             
             # Step 3: Apply main preprocessor
             X_final = apply_preprocessor(
-                df_encoded,
-                self.artifacts["preprocessor"],
-                self.artifacts["feature_list"]
+                df_encoded, self.artifacts["preprocessor"], self.artifacts["feature_list"]
             )
             
             # Step 4: Make prediction
-            prob_late = self.artifacts["model"].predict_proba(X_final)[0][1]
-            prediction_class = self.artifacts["model"].predict(X_final)[0]
+            prob_late = self.model.predict_proba(X_final)[0][1]
+            prediction_class = self.model.predict(X_final)[0]
             
             elapsed_time = time.time() - start_time
             
