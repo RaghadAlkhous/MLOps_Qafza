@@ -14,7 +14,6 @@ from src.config import CONFIG
 from src.logger import get_logger
 from src.validation import validate_order_data
 
-# Hack for FrequencyEncoder (must be in __main__ for joblib to unpickle)
 from src.encoders import FrequencyEncoder
 sys.modules['__main__'].FrequencyEncoder = FrequencyEncoder
 
@@ -23,21 +22,21 @@ logger = get_logger(__name__)
 class InferencePipeline:
     def __init__(self):
         logger.info("Initializing InferencePipeline from MLflow Registry...")
-        mlflow.set_tracking_uri("file:./mlruns")
+        # Use absolute path for mlruns to avoid CWD issues
+        mlruns_path = Path(CONFIG['paths']['logs_dir']).parent / "mlruns"
+        mlflow.set_tracking_uri(f"file:{mlruns_path}")
+        
         client = MlflowClient()
         model_name = "olist-late-delivery-rf"
         
         try:
-            # 1. Get the Production model version
             mv = client.get_model_version_by_alias(model_name, "Production")
             self.model_version = f"{model_name}:{mv.version}"
             run_id = mv.run_id
             
-            # 2. Load the sklearn model directly from the registry
             model_uri = f"models:/{model_name}@Production"
             self.model = mlflow.sklearn.load_model(model_uri)
             
-            # 3. Download transformers to a local cache directory
             cache_dir = Path(CONFIG["paths"]["models_dir"]) / "cache"
             cache_dir.mkdir(parents=True, exist_ok=True)
             
@@ -46,7 +45,6 @@ class InferencePipeline:
             client.download_artifacts(run_id, "zip_frequency_encoder.joblib", str(cache_dir))
             client.download_artifacts(run_id, "feature_list.json", str(cache_dir))
             
-            # 4. Load the downloaded artifacts
             self.artifacts = {
                 "city_encoder": joblib.load(cache_dir / "city_frequency_encoder.joblib"),
                 "zip_encoder": joblib.load(cache_dir / "zip_frequency_encoder.joblib"),
@@ -61,15 +59,17 @@ class InferencePipeline:
 
     def predict(self, raw_input: pd.DataFrame) -> Dict[str, Any]:
         start_time = time.time()
-        logger.info(f"Received prediction request for {raw_input.shape[0]} order(s).")
+        n_rows = raw_input.shape[0]
+        logger.info(f"Received prediction request for {n_rows} order(s).")
 
         try:
             # Step 0: Validate Input Data
             validation_result = validate_order_data(raw_input)
             if not validation_result["success"]:
+                status = validation_result["status"]
                 error_msg = f"Data validation failed: {validation_result['details']}"
                 logger.error(error_msg)
-                return {"error": error_msg, "status": "rejected", "latency_ms": round((time.time() - start_time) * 1000, 2)}
+                return {"error": error_msg, "status": status, "latency_ms": round((time.time() - start_time) * 1000, 2)}
 
             # Step 1: Build derived features
             df_features = create_features(raw_input)
@@ -84,30 +84,49 @@ class InferencePipeline:
                 df_encoded, self.artifacts["preprocessor"], self.artifacts["feature_list"]
             )
             
-            # Step 4: Make prediction
-            prob_late = self.model.predict_proba(X_final)[0][1]
-            prediction_class = self.model.predict(X_final)[0]
+            # Step 4: Make predictions (Vectorized for Batch support)
+            proba_late = self.model.predict_proba(X_final)[:, 1].tolist()
+            prediction_classes = self.model.predict(X_final).tolist()
             
             elapsed_time = time.time() - start_time
             
-            result = {
-                "prediction": int(prediction_class),
-                "label": "late" if prediction_class == 1 else "on_time",
-                "probability": float(prob_late),
-                "model_version": self.model_version,
-                "latency_ms": round(elapsed_time * 1000, 2),
-                "status": "success"
-            }
-            
-            logger.info(f"Prediction successful: {result}")
-            return result
+            # Single row request
+            if n_rows == 1:
+                result = {
+                    "prediction": int(prediction_classes[0]),
+                    "label": "late" if prediction_classes[0] == 1 else "on_time",
+                    "probability": float(proba_late[0]),
+                    "model_version": self.model_version,
+                    "latency_ms": round(elapsed_time * 1000, 2),
+                    "status": "success"
+                }
+                logger.info(f"Prediction successful: {result}")
+                return result
+                
+            # Batch request
+            else:
+                results = []
+                for i in range(n_rows):
+                    results.append({
+                        "prediction": int(prediction_classes[i]),
+                        "label": "late" if prediction_classes[i] == 1 else "on_time",
+                        "probability": float(proba_late[i]),
+                        "model_version": self.model_version,
+                        "status": "success"
+                    })
+                logger.info(f"Batch prediction successful for {n_rows} orders.")
+                return {
+                    "predictions": results,
+                    "latency_ms": round(elapsed_time * 1000, 2),
+                    "status": "success"
+                }
 
         except KeyError as e:
             error_msg = f"Missing required column in input data: {str(e)}"
             logger.error(error_msg)
-            return {"error": error_msg, "status": "failed", "latency_ms": round((time.time() - start_time) * 1000, 2)}
+            return {"error": error_msg, "status": "engine_error", "latency_ms": round((time.time() - start_time) * 1000, 2)}
             
         except Exception as e:
             error_msg = f"Unexpected error during inference: {str(e)}"
             logger.error(error_msg, exc_info=True)
-            return {"error": error_msg, "status": "failed", "latency_ms": round((time.time() - start_time) * 1000, 2)}
+            return {"error": error_msg, "status": "engine_error", "latency_ms": round((time.time() - start_time) * 1000, 2)}
