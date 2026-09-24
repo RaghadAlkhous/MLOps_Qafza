@@ -1,6 +1,7 @@
+﻿# Data
 data/raw/
-*.csv
 
+# Python
 __pycache__/
 *.pyc
 *.pyo
@@ -9,11 +10,30 @@ venv/
 .venv/
 *.egg-info/
 
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
+# OS
 .DS_Store
 Thumbs.db
+
+# Logs
+logs/
+
+# MLflow
+mlruns/
+
+# DVC
+.dvc/cache/
+/artifacts
+
+# MLflow cache and local runs
+models/cache/
+mlruns/
+.env
+artifacts/
+.pytest_cache/

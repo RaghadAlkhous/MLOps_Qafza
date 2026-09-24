@@ -1,0 +1,56 @@
+﻿# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+
+# Virtual environments
+venv
+.venv
+ENV
+env
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Data & Artifacts (managed by DVC)
+data/
+mlruns/
+models/cache/
+
+# Notebooks (not needed in production)
+notebooks/
+
+# Tests (not needed in production image)
+tests/
+
+# GX (not needed in production image)
+# gx/ # Now included in Docker image
+
+# Logs
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+*.log
+*.md
+!README.md
+artifacts/
+.env
