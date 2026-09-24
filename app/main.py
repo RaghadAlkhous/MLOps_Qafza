@@ -1,20 +1,20 @@
-﻿from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager
+from typing import List
+
+import pandas as pd
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
-from typing import List
-import pandas as pd
 
 from app.schemas import (
-    OrderInput,
-    PredictionResult,
     BatchPredictionResponse,
     ErrorResponse,
     HealthResponse,
     ModelInfoResponse,
+    OrderInput,
+    PredictionResult,
 )
-from src.pipeline import InferencePipeline
-from src.config import CONFIG
 from src.logger import get_logger
+from src.pipeline import InferencePipeline
 
 logger = get_logger(__name__)
 
@@ -81,7 +81,7 @@ def get_model_info():
 def predict_single(order: OrderInput):
     """
     Predict whether a single order will be delivered late or on time.
-    
+
     Returns:
         - **prediction**: 0 (on_time) or 1 (late)
         - **label**: "on_time" or "late"
@@ -91,16 +91,16 @@ def predict_single(order: OrderInput):
     """
     # Convert Pydantic model to DataFrame
     df = pd.DataFrame([order.model_dump()])
-    
+
     # Run inference
     result = pipeline.predict(df)
-    
+
     # Handle errors
     if result["status"] == "rejected":
         raise HTTPException(status_code=400, detail=result)
     elif result["status"] == "engine_error":
         raise HTTPException(status_code=500, detail=result)
-    
+
     return PredictionResult(**result)
 
 
@@ -116,26 +116,26 @@ def predict_single(order: OrderInput):
 def predict_batch(orders: List[OrderInput]):
     """
     Predict whether multiple orders will be delivered late or on time.
-    
+
     Returns:
         - **predictions**: List of prediction results
         - **latency_ms**: Total batch inference time in milliseconds
     """
     if not orders:
         raise HTTPException(status_code=400, detail={"error": "Empty batch", "status": "rejected"})
-    
+
     # Convert Pydantic models to DataFrame
     df = pd.DataFrame([order.model_dump() for order in orders])
-    
+
     # Run inference
     result = pipeline.predict(df)
-    
+
     # Handle errors
     if result["status"] == "rejected":
         raise HTTPException(status_code=400, detail=result)
     elif result["status"] == "engine_error":
         raise HTTPException(status_code=500, detail=result)
-    
+
     return BatchPredictionResponse(**result)
 
 
@@ -151,3 +151,8 @@ async def global_exception_handler(request, exc):
             "latency_ms": None,
         },
     )
+
+
+from src.monitoring import setup_monitoring
+
+setup_monitoring(app)

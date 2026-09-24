@@ -1,5 +1,6 @@
-﻿import pytest
+import pytest
 from fastapi.testclient import TestClient
+
 from app.main import app
 
 
@@ -31,10 +32,16 @@ def test_predict_single_valid(client):
         "order_purchase_timestamp": "2017-08-15 10:30:00",
         "order_approved_at": "2017-08-15 10:30:00",
         "order_estimated_delivery_date": "2017-08-25 00:00:00",
-        "item_count": 2, "unique_products": 2, "unique_sellers": 1,
-        "total_price": 150.50, "total_freight_value": 25.00,
-        "payment_count": 1, "payment_types_count": 1,
-        "customer_state": "SP", "customer_city": "sao paulo", "customer_zip_code_prefix": "01000",
+        "item_count": 2,
+        "unique_products": 2,
+        "unique_sellers": 1,
+        "total_price": 150.50,
+        "total_freight_value": 25.00,
+        "payment_count": 1,
+        "payment_types_count": 1,
+        "customer_state": "SP",
+        "customer_city": "sao paulo",
+        "customer_zip_code_prefix": "01000",
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 200
@@ -49,10 +56,16 @@ def test_predict_single_schema_violation(client):
         "order_purchase_timestamp": "2017-08-15 10:30:00",
         "order_approved_at": "2017-08-15 10:30:00",
         "order_estimated_delivery_date": "2017-08-25 00:00:00",
-        "item_count": 2, "unique_products": 2, "unique_sellers": 1,
+        "item_count": 2,
+        "unique_products": 2,
+        "unique_sellers": 1,
         "total_price": -50.0,  # Fails Pydantic ge=0
-        "total_freight_value": 25.00, "payment_count": 1, "payment_types_count": 1,
-        "customer_state": "SP", "customer_city": "sao paulo", "customer_zip_code_prefix": "01000",
+        "total_freight_value": 25.00,
+        "payment_count": 1,
+        "payment_types_count": 1,
+        "customer_state": "SP",
+        "customer_city": "sao paulo",
+        "customer_zip_code_prefix": "01000",
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 422
@@ -64,11 +77,16 @@ def test_predict_single_rejected_by_gx(client):
         "order_purchase_timestamp": "2017-08-15 10:30:00",
         "order_approved_at": "2017-08-15 10:30:00",
         "order_estimated_delivery_date": "2017-08-25 00:00:00",
-        "item_count": 2, "unique_products": 2, "unique_sellers": 1,
-        "total_price": 150.50, "total_freight_value": 25.00,
-        "payment_count": 1, "payment_types_count": 1,
+        "item_count": 2,
+        "unique_products": 2,
+        "unique_sellers": 1,
+        "total_price": 150.50,
+        "total_freight_value": 25.00,
+        "payment_count": 1,
+        "payment_types_count": 1,
         "customer_state": "12",  # Passes Pydantic (len 2), fails GX regex ^[A-Z]{2}$
-        "customer_city": "sao paulo", "customer_zip_code_prefix": "01000",
+        "customer_city": "sao paulo",
+        "customer_zip_code_prefix": "01000",
     }
     response = client.post("/predict", json=payload)
     assert response.status_code == 400
@@ -86,16 +104,34 @@ def test_predict_single_missing_field(client):
 def test_predict_batch_valid(client):
     payload = [
         {
-            "order_purchase_timestamp": "2017-08-15 10:30:00", "order_approved_at": "2017-08-15 10:30:00",
-            "order_estimated_delivery_date": "2017-08-25 00:00:00", "item_count": 2, "unique_products": 2,
-            "unique_sellers": 1, "total_price": 150.50, "total_freight_value": 25.00, "payment_count": 1,
-            "payment_types_count": 1, "customer_state": "SP", "customer_city": "sao paulo", "customer_zip_code_prefix": "01000",
+            "order_purchase_timestamp": "2017-08-15 10:30:00",
+            "order_approved_at": "2017-08-15 10:30:00",
+            "order_estimated_delivery_date": "2017-08-25 00:00:00",
+            "item_count": 2,
+            "unique_products": 2,
+            "unique_sellers": 1,
+            "total_price": 150.50,
+            "total_freight_value": 25.00,
+            "payment_count": 1,
+            "payment_types_count": 1,
+            "customer_state": "SP",
+            "customer_city": "sao paulo",
+            "customer_zip_code_prefix": "01000",
         },
         {
-            "order_purchase_timestamp": "2018-01-01 12:00:00", "order_approved_at": "2018-01-01 12:00:00",
-            "order_estimated_delivery_date": "2018-01-10 00:00:00", "item_count": 1, "unique_products": 1,
-            "unique_sellers": 1, "total_price": 50.00, "total_freight_value": 10.00, "payment_count": 1,
-            "payment_types_count": 1, "customer_state": "RJ", "customer_city": "rio de janeiro", "customer_zip_code_prefix": "20000",
+            "order_purchase_timestamp": "2018-01-01 12:00:00",
+            "order_approved_at": "2018-01-01 12:00:00",
+            "order_estimated_delivery_date": "2018-01-10 00:00:00",
+            "item_count": 1,
+            "unique_products": 1,
+            "unique_sellers": 1,
+            "total_price": 50.00,
+            "total_freight_value": 10.00,
+            "payment_count": 1,
+            "payment_types_count": 1,
+            "customer_state": "RJ",
+            "customer_city": "rio de janeiro",
+            "customer_zip_code_prefix": "20000",
         },
     ]
     response = client.post("/predict/batch", json=payload)
@@ -107,4 +143,3 @@ def test_predict_batch_empty(client):
     response = client.post("/predict/batch", json=[])
     assert response.status_code == 400
     assert response.json()["detail"]["error"] == "Empty batch"
-

@@ -1,15 +1,10 @@
-﻿# Core ML & Data
 scikit-learn==1.7.2
 pandas==2.3.3
 numpy==1.26.4
 joblib==1.5.2
 PyYAML==6.0.3
 pydantic==2.12.4
-
-# API
 fastapi==0.141.1
 uvicorn==0.53.0
-
-# MLOps Tools
 mlflow==2.22.5
 great-expectations==0.18.21

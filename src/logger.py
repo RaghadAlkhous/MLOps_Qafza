@@ -1,7 +1,9 @@
-﻿import logging
+import logging
 import sys
 from pathlib import Path
+
 from src.config import CONFIG
+
 
 def get_logger(name: str = "inference") -> logging.Logger:
     """

@@ -1,4 +1,4 @@
-﻿import numpy as np
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -10,10 +10,15 @@ def _raw(**overrides):
         "order_purchase_timestamp": ["2017-08-15 10:30:00"],
         "order_approved_at": ["2017-08-15 12:30:00"],
         "order_estimated_delivery_date": ["2017-08-25 00:00:00"],
-        "item_count": [2], "unique_products": [2], "unique_sellers": [1],
-        "total_price": [100.0], "total_freight_value": [20.0],
-        "payment_count": [1], "payment_types_count": [1],
-        "customer_state": ["SP"], "customer_city": ["sao paulo"],
+        "item_count": [2],
+        "unique_products": [2],
+        "unique_sellers": [1],
+        "total_price": [100.0],
+        "total_freight_value": [20.0],
+        "payment_count": [1],
+        "payment_types_count": [1],
+        "customer_state": ["SP"],
+        "customer_city": ["sao paulo"],
         "customer_zip_code_prefix": ["01000"],
     }
     base.update(overrides)
@@ -22,9 +27,15 @@ def _raw(**overrides):
 
 def test_create_features_key_columns():
     out = create_features(_raw())
-    for col in ["approval_delay_hours", "approval_delay_missing",
-                "estimated_delivery_lead_days", "freight_ratio",
-                "is_weekend", "purchase_month_sin", "customer_city"]:
+    for col in [
+        "approval_delay_hours",
+        "approval_delay_missing",
+        "estimated_delivery_lead_days",
+        "freight_ratio",
+        "is_weekend",
+        "purchase_month_sin",
+        "customer_city",
+    ]:
         assert col in out.columns
 
 
@@ -53,6 +64,10 @@ def test_is_weekend():
 
 def test_no_leakage_columns():
     out = create_features(_raw())
-    for col in ["order_status", "order_delivered_customer_date",
-                "order_delivered_carrier_date", "delivery_delay_days"]:
+    for col in [
+        "order_status",
+        "order_delivered_customer_date",
+        "order_delivered_carrier_date",
+        "delivery_delay_days",
+    ]:
         assert col not in out.columns

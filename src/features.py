@@ -1,34 +1,26 @@
-﻿import pandas as pd
 import numpy as np
+import pandas as pd
+
 
 def create_features(df: pd.DataFrame) -> pd.DataFrame:
     """
     Build derived features from raw input data.
     This function must match exactly what was used in Notebook 05.
-    
+
     Args:
-        df: Raw input DataFrame with columns like order_purchase_timestamp, 
+        df: Raw input DataFrame with columns like order_purchase_timestamp,
             customer_city, etc.
-    
+
     Returns:
         DataFrame with engineered features ready for preprocessing
     """
     out = pd.DataFrame(index=df.index)
 
-    purchase = pd.to_datetime(
-        df["order_purchase_timestamp"],
-        errors="coerce"
-    )
+    purchase = pd.to_datetime(df["order_purchase_timestamp"], errors="coerce")
 
-    approved = pd.to_datetime(
-        df["order_approved_at"],
-        errors="coerce"
-    )
+    approved = pd.to_datetime(df["order_approved_at"], errors="coerce")
 
-    estimated = pd.to_datetime(
-        df["order_estimated_delivery_date"],
-        errors="coerce"
-    )
+    estimated = pd.to_datetime(df["order_estimated_delivery_date"], errors="coerce")
 
     # Temporal features
     out["purchase_year"] = purchase.dt.year
@@ -46,11 +38,7 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
     out["purchase_hour_cos"] = np.cos(2 * np.pi * purchase_hour / 24)
 
     day_of_week = purchase.dt.dayofweek
-    out["is_weekend"] = np.where(
-        day_of_week.isna(),
-        np.nan,
-        (day_of_week >= 5).astype(int)
-    )
+    out["is_weekend"] = np.where(day_of_week.isna(), np.nan, (day_of_week >= 5).astype(int))
 
     # Approval timing
     approval_delay = (approved - purchase).dt.total_seconds() / 3600
@@ -71,9 +59,7 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
     out["total_freight_value"] = df["total_freight_value"]
 
     out["freight_ratio"] = np.where(
-        df["total_price"] > 0,
-        df["total_freight_value"] / df["total_price"],
-        0.0
+        df["total_price"] > 0, df["total_freight_value"] / df["total_price"], 0.0
     )
 
     # Payment

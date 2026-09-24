@@ -35,3 +35,5 @@ mlruns/
 models/cache/
 mlruns/
 .env
+artifacts/
+.pytest_cache/

@@ -1,4 +1,4 @@
-﻿services:
+services:
   api:
     build:
       context: .
@@ -9,7 +9,11 @@
     environment:
       - MLFLOW_TRACKING_URI=file:/app/mlruns
       - GIT_PYTHON_REFRESH=quiet
+      - EXPECTED_LATE_RATE=${EXPECTED_LATE_RATE:-0.0811}
+      - DRIFT_THRESHOLD=${DRIFT_THRESHOLD:-0.05}
+      - MIN_SAMPLES_FOR_DRIFT=${MIN_SAMPLES_FOR_DRIFT:-100}
     volumes:
+      - ./artifacts:/app/artifacts:ro
       - model_cache:/app/models/cache
       - logs:/app/logs
       - mlruns:/app/mlruns

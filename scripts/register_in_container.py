@@ -1,17 +1,19 @@
-﻿import sys
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import mlflow
-import mlflow.sklearn
-import joblib
 import json
 import os
 
+import joblib
+import mlflow
+import mlflow.sklearn
+
 # Critical for unpickling custom sklearn transformers
 from src.encoders import FrequencyEncoder
-sys.modules['__main__'].FrequencyEncoder = FrequencyEncoder
+
+sys.modules["__main__"].FrequencyEncoder = FrequencyEncoder
 
 
 def register():
@@ -38,9 +40,7 @@ def register():
         mlflow.log_params({k: str(v) for k, v in best_params.items()})
 
         test_metrics = {
-            f"test_{k}": float(v)
-            for k, v in test_results.items()
-            if isinstance(v, (int, float))
+            f"test_{k}": float(v) for k, v in test_results.items() if isinstance(v, (int, float))
         }
         mlflow.log_metrics(test_metrics)
 
@@ -48,9 +48,15 @@ def register():
         mlflow.sklearn.log_model(model, "model")
 
         print("Logging preprocessing artifacts...")
-        mlflow.log_artifact(str(artifacts_dir / "notebook_05" / "transformers" / "preprocessor.joblib"))
-        mlflow.log_artifact(str(artifacts_dir / "notebook_05" / "transformers" / "city_frequency_encoder.joblib"))
-        mlflow.log_artifact(str(artifacts_dir / "notebook_05" / "transformers" / "zip_frequency_encoder.joblib"))
+        mlflow.log_artifact(
+            str(artifacts_dir / "notebook_05" / "transformers" / "preprocessor.joblib")
+        )
+        mlflow.log_artifact(
+            str(artifacts_dir / "notebook_05" / "transformers" / "city_frequency_encoder.joblib")
+        )
+        mlflow.log_artifact(
+            str(artifacts_dir / "notebook_05" / "transformers" / "zip_frequency_encoder.joblib")
+        )
         mlflow.log_artifact(str(artifacts_dir / "notebook_05" / "feature_list.json"))
 
         model_uri = f"runs:/{run.info.run_id}/model"

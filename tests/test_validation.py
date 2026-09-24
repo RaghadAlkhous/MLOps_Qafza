@@ -1,4 +1,4 @@
-﻿from src.validation import validate_order_data
+from src.validation import validate_order_data
 
 
 def test_valid_data_passes(valid_order):
