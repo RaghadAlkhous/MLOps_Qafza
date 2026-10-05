@@ -6,11 +6,13 @@ def test_model_loaded_from_registry(pipeline):
     assert pipeline.model_version.startswith("olist-late-delivery-rf:")
 
 
+@pytest.mark.requires_real_model
 def test_feature_list_size(pipeline):
     assert len(pipeline.artifacts["feature_list"]) == 50
     assert pipeline.model.n_features_in_ == 50
 
 
+@pytest.mark.requires_real_model
 def test_single_prediction_known_input(pipeline, valid_order):
     res = pipeline.predict(valid_order)
     assert res["status"] == "success"
@@ -19,6 +21,7 @@ def test_single_prediction_known_input(pipeline, valid_order):
     assert res["probability"] == pytest.approx(0.22031052838031936, abs=1e-9)
 
 
+@pytest.mark.requires_real_model
 def test_batch_returns_all_rows(pipeline, valid_order):
     batch = pd.concat([valid_order, valid_order], ignore_index=True)
     res = pipeline.predict(batch)

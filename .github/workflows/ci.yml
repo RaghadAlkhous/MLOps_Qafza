@@ -50,6 +50,7 @@ jobs:
           rm -rf mlruns
           mkdir -p mlruns
           python scripts/register_ci_model.py
+
       - name: Ruff lint
         run: ruff check .
 
@@ -57,7 +58,7 @@ jobs:
         run: ruff format --check .
 
       - name: Pytest
-        run: pytest tests/ -v --tb=short
+        run: pytest tests/ -v --tb=short -m "not requires_real_model"
         env:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: "5432"

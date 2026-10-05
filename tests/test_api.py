@@ -27,6 +27,7 @@ def test_get_model_info(client):
     assert data["alias"] == "Production"
 
 
+@pytest.mark.requires_real_model
 def test_predict_single_valid(client):
     payload = {
         "order_purchase_timestamp": "2017-08-15 10:30:00",
@@ -101,6 +102,7 @@ def test_predict_single_missing_field(client):
     assert response.status_code == 422
 
 
+@pytest.mark.requires_real_model
 def test_predict_batch_valid(client):
     payload = [
         {
