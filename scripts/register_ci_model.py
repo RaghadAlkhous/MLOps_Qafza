@@ -20,12 +20,14 @@ def register_model():
     tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "file:./mlruns")
     mlflow.set_tracking_uri(tracking_uri)
 
+    mlflow.set_experiment("CI")
+
     client = MlflowClient()
 
     # Check if Production alias already exists
     try:
         existing_versions = client.search_model_versions(f"name='{MODEL_NAME}'")
-        if any(v.alias == "Production" for v in existing_versions):
+        if any("Production" in v.aliases for v in existing_versions):
             print(f"Model {MODEL_NAME} with Production alias already exists. Skipping.")
             return
     except Exception as e:
